@@ -43,7 +43,6 @@ export default function CallComparisonPage() {
   const [call1Data, setCall1Data] = useState<CompleteCallData | null>(null);
   const [call2Data, setCall2Data] = useState<CompleteCallData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState(0);
   
   const bgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
@@ -717,90 +716,27 @@ export default function CallComparisonPage() {
               {/* Drug Mentions Comparison */}
               {compareDrugMentions()}
               
-              {/* Tabs for different comparison views */}
-              <Tabs isFitted variant="enclosed" onChange={(index) => setActiveTab(index)} colorScheme="blue">
-                <TabList mb="1em">
-                  <Tab>Side-by-Side Sentiment</Tab>
-                  <Tab>Side-by-Side Transcripts</Tab>
-                  <Tab>Side-by-Side Analysis</Tab>
-                </TabList>
-                <TabPanels>
-                  {/* Sentiment Timeline Comparison */}
-                  <TabPanel p={0}>
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                      <Card>
-                        <CardHeader bg={useColorModeValue('blue.50', 'blue.900')}>
-                          <Heading size="sm">Call 1 Sentiment Timeline</Heading>
-                        </CardHeader>
-                        <CardBody>
-                          <SentimentTimeline 
-                            sentimentData={call1Data.analysis.sentiment}
-                            duration={call1Data.call.duration}
-                          />
-                        </CardBody>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader bg={useColorModeValue('green.50', 'green.900')}>
-                          <Heading size="sm">Call 2 Sentiment Timeline</Heading>
-                        </CardHeader>
-                        <CardBody>
-                          <SentimentTimeline 
-                            sentimentData={call2Data.analysis.sentiment}
-                            duration={call2Data.call.duration}
-                          />
-                        </CardBody>
-                      </Card>
-                    </SimpleGrid>
-                  </TabPanel>
-                  
-                  {/* Transcription Comparison */}
-                  <TabPanel p={0}>
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                      <Card>
-                        <CardHeader bg={useColorModeValue('blue.50', 'blue.900')}>
-                          <Heading size="sm">Call 1 Transcription</Heading>
-                        </CardHeader>
-                        <CardBody>
-                          <TranscriptionViewer 
-                            callId={call1Data.call.id}
-                            initialTranscription={call1Data.transcription}
-                          />
-                        </CardBody>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader bg={useColorModeValue('green.50', 'green.900')}>
-                          <Heading size="sm">Call 2 Transcription</Heading>
-                        </CardHeader>
-                        <CardBody>
-                          <TranscriptionViewer 
-                            callId={call2Data.call.id}
-                            initialTranscription={call2Data.transcription}
-                          />
-                        </CardBody>
-                      </Card>
-                    </SimpleGrid>
-                  </TabPanel>
-                  
-                  {/* Full Analysis Comparison */}
-                  <TabPanel p={0}>
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                      <Box>
-                        <AnalysisViewer 
-                          callId={call1Data.call.id}
-                        />
-                      </Box>
-                      
-                      <Box>
-                        <AnalysisViewer 
-                          callId={call2Data.call.id}
-                        />
-                      </Box>
-                    </SimpleGrid>
-                  </TabPanel>
-                </TabPanels>
-              </Tabs>
+              {/* Analysis Comparison */}
+              <Card>
+                <CardHeader bg={useColorModeValue('blue.100', 'blue.900')}>
+                  <Heading size="sm">Side-by-Side Analysis</Heading>
+                </CardHeader>
+                <CardBody>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                    <Box>
+                      <AnalysisViewer 
+                        callId={call1Data.call.id}
+                      />
+                    </Box>
+                    
+                    <Box>
+                      <AnalysisViewer 
+                        callId={call2Data.call.id}
+                      />
+                    </Box>
+                  </SimpleGrid>
+                </CardBody>
+              </Card>
             </>
           )}
         </PageContainer>

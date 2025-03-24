@@ -12,7 +12,7 @@ import { logger } from '../utils/logger';
 
 // Initialize services
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: process.env.CUSTOM_AWS_REGION || 'us-east-1',
 });
 
 const dbService = new DatabaseService();
