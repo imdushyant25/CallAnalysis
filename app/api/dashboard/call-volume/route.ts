@@ -1,16 +1,6 @@
 // File location: app/api/dashboard/call-volume/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
-// Initialize database connection pool
-const pool = new Pool({
-  host: process.env.RDS_HOST,
-  port: parseInt(process.env.RDS_PORT || '5432'),
-  database: process.env.RDS_DATABASE,
-  user: process.env.RDS_USERNAME,
-  password: process.env.RDS_PASSWORD,
-  ssl: process.env.RDS_SSL === 'true' ? { rejectUnauthorized: false } : false
-});
+import { getPool, query } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Query to get call volume trends
-    const query = `
+    const queryString = `
       SELECT 
         ${dateGrouping} AS date,
         COUNT(*) AS calls
@@ -53,7 +43,7 @@ export async function GET(request: NextRequest) {
         date ASC
     `;
     
-    const result = await pool.query(query);
+    const result = await query(queryString);
     
     // Format the response
     const formattedData = result.rows.map(row => ({

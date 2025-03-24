@@ -1,16 +1,5 @@
-// File location: app/api/dashboard/drug-mentions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-
-// Initialize database connection pool
-const pool = new Pool({
-  host: process.env.RDS_HOST,
-  port: parseInt(process.env.RDS_PORT || '5432'),
-  database: process.env.RDS_DATABASE,
-  user: process.env.RDS_USERNAME,
-  password: process.env.RDS_PASSWORD,
-  ssl: process.env.RDS_SSL === 'true' ? { rejectUnauthorized: false } : false
-});
+import { getPool, query } from '@/lib/db'; // Use your shared db module
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,8 +27,8 @@ export async function GET(request: NextRequest) {
         break;
     }
     
-    // Query to get top drug mentions
-    const query = `
+    // Use the shared query function
+    const queryString = `
       SELECT 
         drug_name AS drug,
         SUM(count) AS count
@@ -56,7 +45,7 @@ export async function GET(request: NextRequest) {
       LIMIT $1
     `;
     
-    const result = await pool.query(query, [limit]);
+    const result = await query(queryString, [limit]);
     
     // Use dummy data if no results are returned (for development purposes)
     if (result.rows.length === 0) {
@@ -88,14 +77,6 @@ export async function GET(request: NextRequest) {
       { drug: 'Simvastatin', count: 18 }
     ].slice(0, parseInt(request.nextUrl.searchParams.get('limit') || '10'));
     
-    // In production, you'd return an error response instead of dummy data
     return NextResponse.json(dummyData);
-    
-    /* Production error response:
-    return NextResponse.json({ 
-      error: 'Failed to fetch drug mentions',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-    */
   }
 }
