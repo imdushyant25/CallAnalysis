@@ -1,0 +1,156 @@
+service: pharmacy-call-analysis-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  memorySize: 1024
+  timeout: 30
+  environment:
+    STAGE: ${self:provider.stage}
+    S3_BUCKET: ${self:custom.s3Bucket}
+    RDS_HOST: ${self:custom.rdsHost}
+    RDS_PORT: ${self:custom.rdsPort}
+    RDS_USERNAME: ${self:custom.rdsUsername}
+    RDS_PASSWORD: ${self:custom.rdsPassword}
+    RDS_DATABASE: ${self:custom.rdsDatabase}
+    WHISPER_API_KEY: ${self:custom.whisperApiKey}
+    CLAUDE_API_KEY: ${self:custom.claudeApiKey}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:ListBucket
+          Resource:
+            - arn:aws:s3:::${self:custom.s3Bucket}
+            - arn:aws:s3:::${self:custom.s3Bucket}/*
+
+custom:
+  s3Bucket: ${self:service}-${self:provider.stage}-storage
+  rdsHost: ${env:RDS_HOST, ''}
+  rdsPort: ${env:RDS_PORT, '5432'}
+  rdsUsername: ${env:RDS_USERNAME, ''}
+  rdsPassword: ${env:RDS_PASSWORD, ''}
+  rdsDatabase: ${env:RDS_DATABASE, ''}
+  whisperApiKey: ${env:WHISPER_API_KEY, ''}
+  claudeApiKey: ${env:CLAUDE_API_KEY, ''}
+
+functions:
+  getCall:
+    handler: handlers/queryHandler.getCall
+    events:
+      - http:
+          path: /calls/{id}
+          method: get
+          cors: true
+  
+  getCalls:
+    handler: handlers/queryHandler.getCalls
+    events:
+      - http:
+          path: /calls
+          method: get
+          cors: true
+  
+  getTranscription:
+    handler: handlers/queryHandler.getTranscription
+    events:
+      - http:
+          path: /calls/{id}/transcription
+          method: get
+          cors: true
+  
+  getAnalysis:
+    handler: handlers/queryHandler.getAnalysis
+    events:
+      - http:
+          path: /calls/{id}/analysis
+          method: get
+          cors: true
+  
+  getCompleteCallData:
+    handler: handlers/queryHandler.getCompleteCallData
+    events:
+      - http:
+          path: /calls/{id}/complete
+          method: get
+          cors: true
+  
+  getCallAudio:
+    handler: handlers/queryHandler.getCallAudio
+    events:
+      - http:
+          path: /calls/{id}/audio
+          method: get
+          cors: true
+  
+  flagCall:
+    handler: handlers/queryHandler.flagCall
+    events:
+      - http:
+          path: /calls/{id}/flag
+          method: post
+          cors: true
+  
+  getTrends:
+    handler: handlers/queryHandler.getTrends
+    events:
+      - http:
+          path: /calls/trends
+          method: get
+          cors: true
+  
+  generateUploadUrl:
+    handler: handlers/uploadHandler.generateUploadUrl
+    events:
+      - http:
+          path: /upload/url
+          method: post
+          cors: true
+  
+  processUploadedFile:
+    handler: handlers/uploadHandler.processUploadedFile
+    events:
+      - s3:
+          bucket: ${self:custom.s3Bucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: uploads/
+  
+  runTranscription:
+    handler: handlers/transcriptionHandler.runTranscription
+    events:
+      - sns:
+          topicName: ${self:service}-${self:provider.stage}-transcribe
+          displayName: Trigger transcription process
+  
+  runAnalysis:
+    handler: handlers/analysisHandler.runAnalysis
+    events:
+      - sns:
+          topicName: ${self:service}-${self:provider.stage}-analyze
+          displayName: Trigger call analysis process
+
+resources:
+  Resources:
+    AudioStorageBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.s3Bucket}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - HEAD
+              AllowedOrigins:
+                - '*'
