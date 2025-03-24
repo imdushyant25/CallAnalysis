@@ -38,7 +38,13 @@ export const runAnalysis = async (event: SNSEvent): Promise<void> => {
     
     // Start the analysis process
     const startTime = Date.now();
-    const analysisResult = await analysisService.analyze(transcription, call);
+    if (call.agentId === null) {
+      call.agentId = 'unassigned'; // or any default value
+    }
+    const analysisResult = await analysisService.analyze(
+      transcription, 
+      { ...call, agentId: call.agentId || 'unassigned' } as import('../models/callModel').Call
+    );
     const processingTime = Date.now() - startTime;
     
     // Store analysis in database

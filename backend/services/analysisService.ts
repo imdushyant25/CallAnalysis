@@ -5,7 +5,7 @@
 import axios from 'axios';
 import { Call } from '../models/callModel';
 import { Transcription } from '../models/transcriptionModel';
-import { Analysis } from '../models/analysisModel';
+import { Analysis, SentimentData, ClinicalSummary, AgentPerformance } from '../models/analysisModel';
 import { logger } from '../utils/logger';
 
 export class AnalysisService {

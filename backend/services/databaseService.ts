@@ -54,6 +54,67 @@ export class DatabaseService {
     logger.info('Database connection pool initialized');
   }
   
+/**
+ * Update call duration based on transcription
+ * @param callId The ID of the call to update
+ * @param duration The duration in seconds
+ */
+async updateCallDuration(callId: string, duration: number): Promise<void> {
+  try {
+    const query = `
+      UPDATE calls
+      SET duration = $1, updated_at = NOW()
+      WHERE id = $2
+    `;
+    
+    await this.pool.query(query, [duration, callId]);
+  } catch (error) {
+    console.error('Error updating call duration:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new transcription record in the database
+ * @param transcription The transcription data to store
+ * @returns The ID of the created transcription
+ */
+async createTranscription(transcription: any): Promise<string> {
+  try {
+    const query = `
+      INSERT INTO transcriptions (
+        id,
+        call_id,
+        full_text,
+        masked_full_text,
+        segments,
+        masked_segments,
+        metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id
+    `;
+    
+    // Generate UUID if not provided
+    const transcriptionId = transcription.id || uuidv4();
+    
+    const values = [
+      transcriptionId,
+      transcription.callId,
+      transcription.fullText,
+      transcription.maskedFullText || null,
+      JSON.stringify(transcription.segments),
+      transcription.maskedSegments ? JSON.stringify(transcription.maskedSegments) : null,
+      JSON.stringify(transcription.metadata || {})
+    ];
+    
+    const result = await this.pool.query(query, values);
+    return result.rows[0].id || transcriptionId;
+  } catch (error) {
+    console.error('Error creating transcription:', error);
+    throw error;
+  }
+}
+
   /**
    * Create a new call record in the database
    */
@@ -101,6 +162,157 @@ export class DatabaseService {
     }
   }
   
+/**
+ * Create a new analysis record in the database
+ */
+async createAnalysis(analysis: any): Promise<string> {
+  try {
+    const query = `
+      INSERT INTO analysis (
+        id,
+        call_id,
+        sentiment,
+        clinical_summary,
+        agent_performance,
+        call_summary,
+        disposition,
+        follow_up_required,
+        flags,
+        tags,
+        metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING id
+    `;
+    
+    const values = [
+      analysis.id,
+      analysis.callId,
+      JSON.stringify(analysis.sentiment),
+      JSON.stringify(analysis.clinicalSummary),
+      JSON.stringify(analysis.agentPerformance),
+      analysis.callSummary,
+      analysis.disposition,
+      analysis.followUpRequired,
+      JSON.stringify(analysis.flags),
+      JSON.stringify(analysis.tags),
+      JSON.stringify(analysis.metadata)
+    ];
+    
+    const result = await this.pool.query(query, values);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error('Error creating analysis:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new drug mention record in the database
+ */
+async createDrugMention(drugMention: any): Promise<string> {
+  try {
+    const query = `
+      INSERT INTO drug_mentions (
+        id,
+        call_id,
+        drug_name,
+        count,
+        context
+      ) VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
+    `;
+    
+    const values = [
+      drugMention.id || uuidv4(), // Make sure uuidv4 is imported at the top
+      drugMention.callId,
+      drugMention.drugName,
+      drugMention.count,
+      drugMention.context
+    ];
+    
+    const result = await this.pool.query(query, values);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error('Error creating drug mention:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new call flag in the database
+ */
+async createCallFlag(flag: any): Promise<string> {
+  try {
+    const query = `
+      INSERT INTO call_flags (
+        id,
+        call_id,
+        type,
+        description,
+        severity
+      ) VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
+    `;
+    
+    const values = [
+      flag.id || uuidv4(),
+      flag.callId,
+      flag.type,
+      flag.description,
+      flag.severity
+    ];
+    
+    const result = await this.pool.query(query, values);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error('Error creating call flag:', error);
+    throw error;
+  }
+}
+
+  async getTranscription(transcriptionId: string): Promise<any> {
+    try {
+      const query = `
+        SELECT 
+          id, 
+          call_id as "callId", 
+          full_text as "fullText",
+          masked_full_text as "maskedFullText",
+          segments,
+          masked_segments as "maskedSegments",
+          metadata
+        FROM transcriptions
+        WHERE id = $1
+      `;
+      
+      const result = await this.pool.query(query, [transcriptionId]);
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      const transcription = result.rows[0];
+      
+      // Parse JSON fields
+      if (typeof transcription.segments === 'string') {
+        transcription.segments = JSON.parse(transcription.segments);
+      }
+      
+      if (transcription.maskedSegments && typeof transcription.maskedSegments === 'string') {
+        transcription.maskedSegments = JSON.parse(transcription.maskedSegments);
+      }
+      
+      if (typeof transcription.metadata === 'string') {
+        transcription.metadata = JSON.parse(transcription.metadata);
+      }
+      
+      return transcription;
+    } catch (error) {
+      console.error('Error getting transcription:', error);
+      throw error;
+    }
+  }
+
   /**
    * Get a call record by ID
    */
